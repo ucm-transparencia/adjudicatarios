@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adjudicatarios — UCM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --rojo:      #b71234;
+  --rojo-dark: #8b0d27;
+  --rojo-lite: #f5e6ea;
+  --rojo-pale: #fef7f8;
+  --gris:      #1a1a2e;
+  --gris-m:    #64748b;
+  --gris-c:    #f1f5f9;
+  --borde:     #e2e8f0;
+  --blanco:    #ffffff;
+  --radio:     8px;
+  --fn:        'IBM Plex Sans', system-ui, sans-serif;
+  --fm:        'IBM Plex Mono', monospace;
+  --tr:        .18s cubic-bezier(.4,0,.2,1);
+  --sh:        0 4px 24px rgba(0,0,0,.08);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--fn);background:#f0f2f5;color:var(--gris);min-height:100vh;padding:16px;line-height:1.5;font-size:14px}
+
+.container{max-width:1200px;margin:0 auto;background:var(--blanco);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--rojo) 0%,var(--rojo-dark) 100%);color:var(--blanco);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-icon{width:38px;height:38px;background:rgba(255,255,255,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.header h1{font-size:16px;font-weight:600;line-height:1.2}
+.header h1 span{display:block;font-size:11px;font-weight:400;opacity:.7;margin-top:2px}
+/* FOOTER */
+.footer{background:var(--gris-c);border-top:1px solid var(--borde);padding:14px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.footer-text{font-size:11px;color:var(--gris-m);line-height:1.6}
+.footer-text a{color:var(--rojo-dark);text-decoration:underline;text-decoration-color:rgba(183,18,52,.3)}
+.footer-text a:hover{text-decoration-color:var(--rojo)}
+
+/* CONTROLS */
+.controls-bar{padding:10px 28px;background:var(--blanco);border-bottom:2px solid var(--borde);display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.ctrl-group{display:flex;flex-direction:column;gap:3px}
+.ctrl-group label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gris-m)}
+.ctrl-group select,.ctrl-group input{border:1.5px solid var(--borde);border-radius:6px;padding:7px 32px 7px 10px;font-size:13px;font-family:var(--fn);font-weight:500;color:var(--gris);background:var(--blanco);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23495057' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;min-width:120px;transition:border-color var(--tr)}
+.ctrl-group input{padding-right:10px;background-image:none;min-width:210px}
+.ctrl-group select:hover,.ctrl-group select:focus,.ctrl-group input:hover,.ctrl-group input:focus{border-color:var(--rojo);outline:none}
+.search-wrap{position:relative}
+.search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gris-m)}
+.search-wrap input{padding-left:30px!important}
+
+.export-group{display:flex;gap:8px;margin-left:auto;align-items:flex-end}
+.export-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border:none;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer;transition:all var(--tr);font-family:var(--fn);color:var(--blanco);white-space:nowrap}
+.export-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.export-btn.xlsx{background:#1D6F42}
+.export-btn.csv{background:#2563eb}
+
+/* MAIN */
+.main{padding:20px 28px 40px}
+
+/* SECTION */
+.section{margin-bottom:28px}
+.sec-hdr{margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--rojo-lite);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec-hdr h2{font-size:15px;font-weight:700;color:var(--rojo-dark)}
+.sec-meta{font-size:11px;color:var(--gris-m);font-style:italic}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radio);border:1px solid var(--borde)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--blanco)}
+thead tr{background:linear-gradient(135deg,var(--rojo) 0%,var(--rojo-dark) 100%);color:var(--blanco)}
+thead th{padding:9px 10px;text-align:left;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{background:rgba(255,255,255,.1)}
+thead th .sort-icon{opacity:.5;margin-left:4px;font-size:10px}
+thead th.sorted-asc .sort-icon::after{content:'↑';opacity:1}
+thead th.sorted-desc .sort-icon::after{content:'↓';opacity:1}
+thead th:not(.sorted-asc):not(.sorted-desc) .sort-icon::after{content:'↕'}
+tbody tr{border-bottom:1px solid var(--borde);transition:background var(--tr)}
+tbody tr:hover{background:var(--rojo-pale)}
+tbody tr:nth-child(even){background:#fafbfc}
+tbody tr:nth-child(even):hover{background:var(--rojo-pale)}
+td{padding:7px 10px;vertical-align:middle}
+.col-num{text-align:right;color:var(--gris-m);font-family:var(--fm);font-size:11px;width:36px}
+.col-adj{font-weight:500}
+.col-cif{font-family:var(--fm);font-size:11px;color:var(--gris-m);white-space:nowrap}
+.col-importe{text-align:right;white-space:nowrap;font-family:var(--fm);font-size:12.5px;font-weight:600;color:var(--rojo-dark)}
+.col-exp{font-family:var(--fm);font-size:11px;color:var(--gris-m);white-space:nowrap}
+.col-obj{min-width:220px;max-width:340px;line-height:1.4}
+.col-unidad{font-size:11px;color:var(--gris-m);max-width:180px}
+.badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.badge-servicios{background:#fef9c3;color:#854d0e}
+.badge-suministros{background:#dbeafe;color:#1e40af}
+.badge-obras{background:#f3e8ff;color:#6b21a8}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:16px;padding:12px 28px;background:var(--gris-c);border-bottom:1px solid var(--borde);flex-wrap:wrap}
+.stat-card{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gris-m)}
+.stat-value{font-size:15px;font-weight:700;color:var(--gris);font-family:var(--fm)}
+.stat-value.red{color:var(--rojo)}
+
+/* PAGINATION */
+.pagination-wrap{display:flex;align-items:center;justify-content:space-between;padding:10px 0 2px;flex-wrap:wrap;gap:8px}
+.pagination-info{font-size:12px;color:var(--gris-m)}
+.pagination{display:flex;align-items:center;gap:4px}
+.page-btn{min-width:30px;height:30px;border:1.5px solid var(--borde);border-radius:6px;background:var(--blanco);font-size:12px;font-family:var(--fn);font-weight:500;color:var(--gris);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--tr);padding:0 6px}
+.page-btn:hover{border-color:var(--rojo);color:var(--rojo)}
+.page-btn.active{background:var(--rojo);border-color:var(--rojo);color:#fff;font-weight:700}
+.page-btn:disabled{opacity:.35;cursor:not-allowed}
+.page-size-select{border:1.5px solid var(--borde);border-radius:6px;padding:5px 22px 5px 8px;font-size:12px;font-family:var(--fn);color:var(--gris);background:var(--blanco);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23495057' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.page-size-select:focus{border-color:var(--rojo);outline:none}
+
+/* YEAR TABS */
+.year-tab-bar{display:flex;gap:6px;padding:14px 28px 0;flex-wrap:wrap}
+.ytab{padding:7px 18px;border:1.5px solid var(--borde);border-bottom:none;border-radius:8px 8px 0 0;background:var(--gris-c);color:var(--gris-m);font-family:var(--fn);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--tr)}
+.ytab:hover{background:var(--rojo-lite);color:var(--rojo)}
+.ytab.act{background:var(--blanco);color:var(--rojo);border-color:var(--borde);border-bottom-color:var(--blanco);position:relative;z-index:1}
+.year-divider{border-top:1.5px solid var(--borde);margin:0 28px;position:relative;top:-1px}
+.year-panel{display:none}
+.year-panel.active{display:block}
+
+.empty-row td{text-align:center;color:var(--gris-m);padding:28px;font-style:italic}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">🏛️</div>
+      <h1>Adjudicatarios de Contratos
+        <span>Universidad Complutense de Madrid · Ejercicios 2021–2025</span>
+      </h1>
+    </div>
+
+  </div>
+
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <label>Búsqueda</label>
+      <div class="search-wrap">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="searchInput" type="text" placeholder="Adjudicatario, CIF, expediente…" oninput="onSearch()">
+      </div>
+    </div>
+    <div class="export-group">
+      <button class="export-btn xlsx" onclick="downloadExcel()">
+        <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/></svg>
+        Descargar Excel
+      </button>
+      <button class="export-btn csv" onclick="downloadCSV()">
+        <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+        Descargar CSV
+      </button>
+    </div>
+  </div>
+
+  <div class="year-tab-bar" id="yearTabs"></div>
+  <div class="year-divider"></div>
+
+  <div class="main" id="mainContent"></div>
+
+</div>
+
+<script>
+const DATA = {"2021": [{"Adjudicatario": "ELSEVIER B.V.", "Importe": 3509285.97}, {"Adjudicatario": "PROFORMA", "Importe": 1583585.08}, {"Adjudicatario": "UTE. SRH CONSTRUCC-RUESMA, S.A.", "Importe": 982908.74}, {"Adjudicatario": "UNIVERSITAS XXI, SOL. Y TECN., S.A.", "Importe": 924382.89}, {"Adjudicatario": "POWERNET I, S.L.", "Importe": 889075.22}, {"Adjudicatario": "CONSTRUCCIONES RACOSA", "Importe": 664956.14}, {"Adjudicatario": "OCLC B.V.", "Importe": 659348.72}, {"Adjudicatario": "BRUKER ESPAÑOLA, S.A.", "Importe": 600160.0}, {"Adjudicatario": "GUADALTEL S.A", "Importe": 563557.5}, {"Adjudicatario": "EIFFAGE ENERGÍA, S.L.U.", "Importe": 542636.16}, {"Adjudicatario": "TWENTE SOLID STATE TECHNOLOGY B.V.", "Importe": 495941.87}, {"Adjudicatario": "EBSCO INFORMATION SERVICES, S.L.U.", "Importe": 370252.7}, {"Adjudicatario": "SRH CONSTRUCCIONES, S.A.", "Importe": 355395.0}, {"Adjudicatario": "PALEX MEDICAL S.A.", "Importe": 350900.0}, {"Adjudicatario": "PROSYSTEN, S.L.", "Importe": 309421.2}, {"Adjudicatario": "ACADEMIC SOFTWARE/SOFTWAREONE BE", "Importe": 275026.71}, {"Adjudicatario": "FUNDACION ESPAÑOLA PARA CIENCIA Y T", "Importe": 269387.94}, {"Adjudicatario": "NUBALIA CLOUD COMPUTING S.L.", "Importe": 256771.37}, {"Adjudicatario": "OBRAS Y SERVICIOS REHABITEC, S.L.", "Importe": 246598.76}, {"Adjudicatario": "MAESSA TELECOMUNICACIONES(MAETEL)", "Importe": 217750.29}, {"Adjudicatario": "FEI EUROPE, B.V", "Importe": 211750.0}, {"Adjudicatario": "GESTIONA DESARROLLO DE SERV. INTEGR", "Importe": 206030.33}, {"Adjudicatario": "ODILOTID S.L.", "Importe": 186762.99}, {"Adjudicatario": "MONT. ELECTRICOS GARROTE, S.L.", "Importe": 186086.36}, {"Adjudicatario": "WERFEN ESPAÑA, S.A.", "Importe": 174147.12}, {"Adjudicatario": "AUTOCARES VISTA ALEGRE", "Importe": 135000.0}, {"Adjudicatario": "JASCO ANALITICA SPAIN,S.L.", "Importe": 126940.51}, {"Adjudicatario": "ILLUMINA PRODUCTOS DE ESPAÑA S.L.U.", "Importe": 126417.53}, {"Adjudicatario": "ANT NEURO GMBH", "Importe": 125000.0}, {"Adjudicatario": "CANON MEDICAL SYSTEMS SA", "Importe": 124801.14}, {"Adjudicatario": "ANADAT TECHNOLOGY SL", "Importe": 123420.0}, {"Adjudicatario": "SAVEFFI SOLUTIONS S.L.", "Importe": 123192.88}, {"Adjudicatario": "S.B.S. SEIDOR, S.L.", "Importe": 120153.0}, {"Adjudicatario": "ALAVA INGENIEROS, S.A.", "Importe": 108747.54}, {"Adjudicatario": "QSR INTERNATIONAL (UK) LIMITED", "Importe": 99946.0}, {"Adjudicatario": "GLOBAL ROSETTA, S. L.", "Importe": 99825.0}, {"Adjudicatario": "NOTACOOLCOMPANY, S.L.", "Importe": 93131.28}, {"Adjudicatario": "OPEI ACTIVIDADES Y SERVICIOS, S.L.", "Importe": 92598.36}, {"Adjudicatario": "INETUM ESPAÑA, S.A", "Importe": 87120.0}, {"Adjudicatario": "PROYECTA GESTION INTEGRAL PROYECTO", "Importe": 76230.0}, {"Adjudicatario": "KYT IMPLANTES DENTALES, S.L.", "Importe": 67518.0}, {"Adjudicatario": "UKU GROUP LTD", "Importe": 65340.0}, {"Adjudicatario": "COVESA 2020 PROYECTOS Y SERVICIO SL", "Importe": 64594.36}, {"Adjudicatario": "DIMETRICAL, The Analytics Lab", "Importe": 64185.73}, {"Adjudicatario": "GREENDATA", "Importe": 63652.59}, {"Adjudicatario": "ERNST & YOUNG SL", "Importe": 56628.0}, {"Adjudicatario": "IRE RAYOS X S.A.", "Importe": 54450.0}, {"Adjudicatario": "KLOCKNER, S.A.", "Importe": 49080.0}, {"Adjudicatario": "COMUNICACIONES BANCARIAS INTERN.S.L", "Importe": 49005.0}, {"Adjudicatario": "IMPORTACIONES INDUSTRIALES, S.A.", "Importe": 48372.47}, {"Adjudicatario": "CUALTIS, S.L.U", "Importe": 46430.0}, {"Adjudicatario": "FORMULARIOS QUIMICOS, S.A.", "Importe": 44270.27}, {"Adjudicatario": "GARCIA-MAROTO EDITORES S.L.", "Importe": 43773.52}, {"Adjudicatario": "KALMA, S.A.", "Importe": 42955.0}, {"Adjudicatario": "IDENTIFICATION CARE, S.L.", "Importe": 41693.58}, {"Adjudicatario": "KINESIS PROYECTOS Y SERVICIOS SL", "Importe": 41261.0}, {"Adjudicatario": "UNIV. DE SANTIAGO DE COMPOSTELA", "Importe": 38899.52}, {"Adjudicatario": "MADRIFERR, S.L.U.", "Importe": 37483.56}, {"Adjudicatario": "OCIOGIM, S.L.", "Importe": 37400.0}, {"Adjudicatario": "ORACLE IBERICA, S.R.L.", "Importe": 36608.39}, {"Adjudicatario": "TWO-TEN HEALTH", "Importe": 36300.0}, {"Adjudicatario": "UNIVERSIDAD DE BURGOS (CONTABILIDAD", "Importe": 36275.8}, {"Adjudicatario": "RADIOMETER IBERICA S.L.", "Importe": 34865.62}, {"Adjudicatario": "SAGE SP SL", "Importe": 33880.0}, {"Adjudicatario": "UNIVERSIDAD POLITECNICA DE MADRID", "Importe": 33880.0}, {"Adjudicatario": "Sopa Software S.L", "Importe": 30008.0}, {"Adjudicatario": "SOROLL ELECTRONIC, S.A.", "Importe": 27346.0}, {"Adjudicatario": "CAPARRÓS EXTINTORES, S.A.U.", "Importe": 25230.01}, {"Adjudicatario": "RETTENMAIER IBERICA, S.L. Y CIA", "Importe": 24684.0}, {"Adjudicatario": "AIRIN MEDIO AMBIENTAL SLU", "Importe": 24502.5}, {"Adjudicatario": "CULTURAL MEDIA DESIGN, S.L,", "Importe": 24199.88}, {"Adjudicatario": "MARKEL INSURANCE SE, SUCURSAL ESPAÑ", "Importe": 24192.0}, {"Adjudicatario": "CLEVISA,S.L.", "Importe": 24079.0}, {"Adjudicatario": "KEYTRON, S.A.", "Importe": 23563.13}, {"Adjudicatario": "INVEST.Y PROYE. MICROBIOLÓGICOS S.L", "Importe": 19335.8}, {"Adjudicatario": "SAKURA PRODUCTOS HOSPITALARIOS", "Importe": 18876.0}, {"Adjudicatario": "MICROBEAM,S.A.", "Importe": 18788.88}, {"Adjudicatario": "JUPICAR, S.L.", "Importe": 16940.0}, {"Adjudicatario": "VIVA AQUASERVICE", "Importe": 16218.76}, {"Adjudicatario": "ZYL TECNOLOGÍA, CONSULTORÍA E INVER", "Importe": 15730.0}, {"Adjudicatario": "VINFRA S.A.", "Importe": 14471.6}, {"Adjudicatario": "ROMERO MORALES, Mª GRACIA -FARMACIA", "Importe": 13655.2}, {"Adjudicatario": "SURGE AMBIENTAL, S.L.", "Importe": 13629.0}, {"Adjudicatario": "LASING, S.A.", "Importe": 13612.5}, {"Adjudicatario": "MADRILEÑA DE CONTENEDORES, S.L.", "Importe": 12500.0}, {"Adjudicatario": "SIEMENS, S.A.", "Importe": 12413.72}, {"Adjudicatario": "ALCON HEALTHCARE SA", "Importe": 10273.48}, {"Adjudicatario": "EGEDA", "Importe": 9755.63}, {"Adjudicatario": "RADIOLOGIA, S.A.", "Importe": 9317.0}, {"Adjudicatario": "AGILENT TECHNOLOGIES SPAIN, S.L.", "Importe": 9089.52}, {"Adjudicatario": "Provaquil S.L", "Importe": 8743.51}, {"Adjudicatario": "SIEMENS HEALTHCARE DIAGNOSTICS", "Importe": 8623.67}, {"Adjudicatario": "B. BRAUN VETCARE S.A", "Importe": 8463.95}, {"Adjudicatario": "c2c CREACION GESTION PROYECTOS CULT", "Importe": 8228.0}, {"Adjudicatario": "MERCK LIFE SCIENCE SLU", "Importe": 8192.37}, {"Adjudicatario": "ORDAX TRANSPORTE ARTE&EXPOSICIONES,", "Importe": 7465.700000000001}, {"Adjudicatario": "TECNOLOGIA Y SERVICIO,S.A.", "Importe": 7381.0}, {"Adjudicatario": "Sodispan, s.l. Research", "Importe": 7078.5}, {"Adjudicatario": "ADDLINK SOFTWARE CIENTIFICO", "Importe": 6643.26}, {"Adjudicatario": "CASALINI LIBRI, S.P.A.", "Importe": 6600.81}, {"Adjudicatario": "APLICACIONES TECNICAS SOFTLINE, S", "Importe": 5850.35}, {"Adjudicatario": "MILTENYI BIOTEC, S.L", "Importe": 5687.0}, {"Adjudicatario": "PERKIN ELMER", "Importe": 4791.6}, {"Adjudicatario": "Grupo Intersat Instalaciones y Reha", "Importe": 4467.32}, {"Adjudicatario": "A.T. MEDTRA, S.L.", "Importe": 4313.65}, {"Adjudicatario": "JIMENEZ PEREZ, ALBERTO FERNANDO", "Importe": 4009.99}, {"Adjudicatario": "AZBIL TELSTAR TECHNOLOGIES, S.L.", "Importe": 3790.93}, {"Adjudicatario": "Recepción y Control, S.A.,", "Importe": 3777.07}, {"Adjudicatario": "ALLENTA CONSULTING, SL", "Importe": 3557.4}, {"Adjudicatario": "EULEN, S.A.", "Importe": 3413.55}, {"Adjudicatario": "ECO-FRED RUBI, S.L.", "Importe": 2912.47}, {"Adjudicatario": "TIMBERLAKE CONSULTING, S.L.", "Importe": 2866.25}, {"Adjudicatario": "ABB ELECTRIFICATION SOLUTIONS, SLU", "Importe": 2600.0}, {"Adjudicatario": "SERV FUNERAR S. SEBASTIÁN Y S. BLAS", "Importe": 2380.07}, {"Adjudicatario": "SLCLAB INFORMATICA S.L.", "Importe": 2201.0}, {"Adjudicatario": "SEMAE S.L.U. (ACQUA JET)", "Importe": 2081.2}, {"Adjudicatario": "UNION PROTECCION CIVIL, S.L.", "Importe": 1875.5}, {"Adjudicatario": "CALTECNICA INGENIEROS, S.L.", "Importe": 1859.58}, {"Adjudicatario": "ECO-AGUA S.G.ASOCIADOS S.L.", "Importe": 1774.43}, {"Adjudicatario": "MICROSERCON,S.L.", "Importe": 1743.6}, {"Adjudicatario": "FARMA SOFT, INFORMÁTICA Y SERVICIOS", "Importe": 1535.68}, {"Adjudicatario": "SCHINDLER, S.A.", "Importe": 574.75}, {"Adjudicatario": "ARCA SERVICIOS AMBIENTALES MADRID", "Importe": 511.75}, {"Adjudicatario": "SERKONTEN -SERV.CONT.HIGIE.SANITAR.", "Importe": 363.0}, {"Adjudicatario": "LABORTECH WALDNER,S.L.", "Importe": 61.11}, {"Adjudicatario": "HIGIENICA DE BIOSANITARIOS, S.L.", "Importe": 48.24}, {"Adjudicatario": "32 PUNTOS", "Importe": 44.98}], "2022": [{"Adjudicatario": "LANTANIA Y ASCH INFRAESTRUCTURAS", "Importe": 40227640.14}, {"Adjudicatario": "BRUKER ESPAÑOLA, S.A.", "Importe": 5020290.0}, {"Adjudicatario": "LASING, S.A.", "Importe": 1747875.25}, {"Adjudicatario": "REPROEXPRES, S.L.", "Importe": 1670400.02}, {"Adjudicatario": "INETUM ESPAÑA, S.A", "Importe": 1299198.18}, {"Adjudicatario": "UTE REHABITEC-SAN GREGORIO FARMACIA", "Importe": 767384.1}, {"Adjudicatario": "SPRINGER CUSTOMER SERVICE CEN. GMBH", "Importe": 707698.75}, {"Adjudicatario": "PERKIN ELMER", "Importe": 530311.56}, {"Adjudicatario": "SERVEO SERVICIOS S.A.", "Importe": 516672.86}, {"Adjudicatario": "EICO INGENIERIA Y ECONOMIA, S.L.", "Importe": 503772.42}, {"Adjudicatario": "BECTON DICKINSON,S.A.", "Importe": 503672.78}, {"Adjudicatario": "IZASA SCIENTIFIC, S.L.U.", "Importe": 472739.87}, {"Adjudicatario": "EXCELENCIA TECH SL", "Importe": 449655.36}, {"Adjudicatario": "CLIMATIZACIÓN INTEGRAL DE EDIFICIOS", "Importe": 433228.61}, {"Adjudicatario": "UTE BN ASOCIADOS VALLADARES ING.", "Importe": 389438.5}, {"Adjudicatario": "LOT-QUANTUMDESIGN GMBH", "Importe": 377520.0}, {"Adjudicatario": "BONSAI LAB S.L", "Importe": 326272.0}, {"Adjudicatario": "M.T. BRANDAO ESPAÑA, S.L.", "Importe": 321860.0}, {"Adjudicatario": "CONSTRUCCIONES RACOSA", "Importe": 316137.07}, {"Adjudicatario": "ELECNOR SERVICIOS Y PROYEC., S.A.U.", "Importe": 310108.48}, {"Adjudicatario": "MEDIOS DE PREV. EXT.CENT.LEVANTE", "Importe": 309825.0}, {"Adjudicatario": "ZEPPELIN METROLOGY, S.L.", "Importe": 298219.02}, {"Adjudicatario": "MALVERN PANALYTICAL B.V. SUC. ESPAÑ", "Importe": 278283.06}, {"Adjudicatario": "INFORMA, INFORMACION ECONOMICA,S.A.", "Importe": 263044.32}, {"Adjudicatario": "AMERICAN CHEMICAL SOCIETY", "Importe": 235905.11}, {"Adjudicatario": "MERCK LIFE SCIENCE SLU", "Importe": 233589.28}, {"Adjudicatario": "THE MATHWORKS,S.L.", "Importe": 213934.97}, {"Adjudicatario": "PROLISER, S.L.", "Importe": 206000.0}, {"Adjudicatario": "GLOBAL ROSETTA, S. L.", "Importe": 192874.0}, {"Adjudicatario": "LIFE TECHNOLOGIES S.A.", "Importe": 186340.0}, {"Adjudicatario": "APLICACIONES CROMATOGRAFICAS, S.L.", "Importe": 177614.44}, {"Adjudicatario": "ACIERTA ASISTENCIA, S.A.", "Importe": 174524.47}, {"Adjudicatario": "ILLUMINA PRODUCTOS DE ESPAÑA S.L.U.", "Importe": 163492.63}, {"Adjudicatario": "DENTSPLY SIRONA EUROPE EST.PER.ESP", "Importe": 163229.0}, {"Adjudicatario": "Evident Europe Gmbh sucursal España", "Importe": 159684.2}, {"Adjudicatario": "UTE EULEN SA-EULEN SEGURIDAD SA", "Importe": 156899.1}, {"Adjudicatario": "EPPENDORF IBERIA S.L.U. (HSBC)", "Importe": 143268.04}, {"Adjudicatario": "MOTOR AUTO LEGANÉS, S.A.", "Importe": 123801.15}, {"Adjudicatario": "THERMO FISHER SCIENTIFIC, S.L.", "Importe": 123259.07}, {"Adjudicatario": "METROHM HISPANIA S.L.U.", "Importe": 115676.0}, {"Adjudicatario": "LEICA MICROSYSTEMS", "Importe": 109333.06}, {"Adjudicatario": "DEVOTEAM DRAGO SAU", "Importe": 108549.1}, {"Adjudicatario": "ERNST & YOUNG SL", "Importe": 103793.8}, {"Adjudicatario": "ITOP TRAINING ADVANCED, S.L", "Importe": 102513.01}, {"Adjudicatario": "MERCADOTECNIA MET,S.L.", "Importe": 102269.64}, {"Adjudicatario": "Teltek Video Research SL", "Importe": 100016.52}, {"Adjudicatario": "LIBNOVA S.L.", "Importe": 76714.0}, {"Adjudicatario": "L' ACUITE LU SLU", "Importe": 75020.0}, {"Adjudicatario": "WINTOWINPARTNERS", "Importe": 72600.0}, {"Adjudicatario": "BIOSIS", "Importe": 72539.5}, {"Adjudicatario": "WOOCLAP S.A.", "Importe": 72237.0}, {"Adjudicatario": "SERINCAL INDUSTRIAL S.L.", "Importe": 72079.7}, {"Adjudicatario": "COVESA 2020 PROYECTOS Y SERVICIO SL", "Importe": 64602.26}, {"Adjudicatario": "FUNER. NTRA. SRA. DE LOS REMEDIOS", "Importe": 63222.5}, {"Adjudicatario": "ONITY, S.L.", "Importe": 62920.0}, {"Adjudicatario": "Marcial Pons Ediciones Jurídicas", "Importe": 62400.0}, {"Adjudicatario": "ROCHE DIAGNOSTICS, S.L.", "Importe": 62254.5}, {"Adjudicatario": "KREAB IBERIA, S.L.", "Importe": 59287.58}, {"Adjudicatario": "ANSYS IBERIA, S.L.", "Importe": 51594.4}, {"Adjudicatario": "QS UNISOLUTION GmBH", "Importe": 50820.0}, {"Adjudicatario": "ARVO CONSULTORES Y TECNOLOGIA, S.L.", "Importe": 49359.93}, {"Adjudicatario": "TISELAB, S.L", "Importe": 48690.4}, {"Adjudicatario": "DISTRICT HEATING ECO ENERGIAS S.L.", "Importe": 48400.0}, {"Adjudicatario": "ITECHGRUP INNOVACION", "Importe": 48037.0}, {"Adjudicatario": "DATOS MEDIA TECHNOLOGIES, S.A.", "Importe": 46815.2}, {"Adjudicatario": "SYMPOSIUM EVENTS, S.L.", "Importe": 45762.38}, {"Adjudicatario": "DIDOMI SAS", "Importe": 45000.0}, {"Adjudicatario": "FAMA SYSTEMS S.A", "Importe": 43560.0}, {"Adjudicatario": "EBSCO INFORMATION SERVICES, S.L.U.", "Importe": 39576.56}, {"Adjudicatario": "KARL STORZ ENDOSCOPIA IBERICA, S.A.", "Importe": 37356.17}, {"Adjudicatario": "ABS INFORMATICA, S.L.U.", "Importe": 36300.0}, {"Adjudicatario": "TITANIUM ORAL HEALTH SOLUTIONS Ltd-", "Importe": 36300.0}, {"Adjudicatario": "BOCANEGRA LINARES, JESUS", "Importe": 36275.8}, {"Adjudicatario": "INFORTEL", "Importe": 34291.42}, {"Adjudicatario": "WOLTERS KLUWER TAX AND ACCOUNTING S", "Importe": 34256.26}, {"Adjudicatario": "SMARTFLOWER IBERIA SL", "Importe": 33940.5}, {"Adjudicatario": "ETICAS RESEARCH AND CONSULTIG", "Importe": 32670.0}, {"Adjudicatario": "CIBERGRAF SLU", "Importe": 31922.22}, {"Adjudicatario": "CONCEPTO ORAL S.L.", "Importe": 29225.13}, {"Adjudicatario": "TRIALVET", "Importe": 29040.0}, {"Adjudicatario": "W.M. BLOSS,S.A.", "Importe": 27225.0}, {"Adjudicatario": "ALCANCE GLOBAL, S.L.", "Importe": 26862.0}, {"Adjudicatario": "GLOBALIA URBANISMO INTEGRAL S.L", "Importe": 26669.34}, {"Adjudicatario": "IMESAPI, SA", "Importe": 26211.89}, {"Adjudicatario": "TRUSTYNET SL", "Importe": 25410.0}, {"Adjudicatario": "OCIOGIM, S.L.", "Importe": 25401.83}, {"Adjudicatario": "QUEUE-IT APS", "Importe": 23958.0}, {"Adjudicatario": "ASTIBOT INGENIERIA INFORMATICA", "Importe": 22022.0}, {"Adjudicatario": "AMBISER INNOVACIONES S.L.", "Importe": 20611.95}, {"Adjudicatario": "PRIMION DIGITEK", "Importe": 20607.4}, {"Adjudicatario": "CARL ZEISS IBERICA, S.A.", "Importe": 20557.9}, {"Adjudicatario": "Desarrollo App. Tarjeta Inteligente", "Importe": 19027.25}, {"Adjudicatario": "SCHNEIDER ELECTRIC IT SPAIN S. L.", "Importe": 18791.3}, {"Adjudicatario": "Ozona Tecnologías de la Información", "Importe": 18367.36}, {"Adjudicatario": "STILOGO,S.L.", "Importe": 18150.0}, {"Adjudicatario": "ISOTOPX LIMITED", "Importe": 17264.66}, {"Adjudicatario": "SMART ARCHITECTURE OF SYSTEMS S.L", "Importe": 16637.5}, {"Adjudicatario": "GUADALTEL S.A", "Importe": 16558.85}, {"Adjudicatario": "SAKURA PRODUCTOS HOSPITALARIOS", "Importe": 16335.0}, {"Adjudicatario": "MAZARS AUDITORES SLP", "Importe": 15730.0}, {"Adjudicatario": "APLICACIONES TECNICAS SOFTLINE, S", "Importe": 15530.47}, {"Adjudicatario": "AVD3 S.L.", "Importe": 14979.8}, {"Adjudicatario": "SOCIAL IMPACT TECHNOLOGIES, S.L", "Importe": 13310.0}, {"Adjudicatario": "VIVA AQUASERVICE", "Importe": 11541.82}, {"Adjudicatario": "TECHKOVERY", "Importe": 10648.0}, {"Adjudicatario": "SIEMENS, S.A.", "Importe": 9781.37}, {"Adjudicatario": "TECNOLOGÍA PRO INFORMÁTICA, S.L.", "Importe": 9350.16}, {"Adjudicatario": "TECNOLOGIA Y SERVICIO,S.A.", "Importe": 8776.78}, {"Adjudicatario": "SURGE AMBIENTAL, S.L.", "Importe": 7748.84}, {"Adjudicatario": "ASSA ABLOY ENTRANCE SYSTEMS SPAIN", "Importe": 6102.4}, {"Adjudicatario": "mantelec, s.a.", "Importe": 6056.69}, {"Adjudicatario": "VERTIV SPAIN S.A.", "Importe": 5890.77}, {"Adjudicatario": "TECNOVAC", "Importe": 4787.97}, {"Adjudicatario": "ECOSIONA ENERGÍA SL", "Importe": 4552.26}, {"Adjudicatario": "ORDAX TRANSPORTE ARTE&EXPOSICIONES", "Importe": 4477.0}, {"Adjudicatario": "EULEN, S.A.", "Importe": 3884.5}, {"Adjudicatario": "CULTEK, S.L.", "Importe": 2343.53}, {"Adjudicatario": "EXCENTIA CONSULTORIA SL", "Importe": 2178.0}, {"Adjudicatario": "NEURTEK SERVICES S.L.U.", "Importe": 2108.75}, {"Adjudicatario": "MANANTIAL DE SALUD, S.L.", "Importe": 1958.0}, {"Adjudicatario": "I.T.A. AQUATEKNICA. S.A.", "Importe": 1452.0}, {"Adjudicatario": "AGUAPURA AGUAVIVA S.L.", "Importe": 1254.53}, {"Adjudicatario": "PUERTAS SECADES,SL", "Importe": 907.98}, {"Adjudicatario": "FORMULARIOS QUIMICOS, S.A.", "Importe": 657.64}, {"Adjudicatario": "SMART AREAS TECH, S.L.", "Importe": 100.43}, {"Adjudicatario": "KINESIS PROYECTOS Y SERVICIOS SL", "Importe": 16.7}, {"Adjudicatario": "RETTENMAIER IBERICA, S.L. Y CIA", "Importe": 1.21}], "2023": [{"CIF": "A06072979", "Razon_social": "SECOEX, S.A.", "Importe": 3850295.45}, {"CIF": "U56275456", "Razon_social": "UTE TdE-TME CMLXXX", "Importe": 2950408.56}, {"CIF": "A28206712", "Razon_social": "CANON MEDICAL SYSTEMS SA", "Importe": 1583057.52}, {"CIF": "B19510361", "Razon_social": "GRULOP 21, S.L.", "Importe": 1181692.46}, {"CIF": "U56151269", "Razon_social": "UTE REHABITEC-SAN GREGORIO ENFERMER", "Importe": 974484.18}, {"CIF": "A28010478", "Razon_social": "IMESAPI, SA", "Importe": 961092.21}, {"CIF": "A61446308", "Razon_social": "FAMA SYSTEMS S.A", "Importe": 895279.0}, {"CIF": "B78124815", "Razon_social": "PROSYSTEN, S.L.", "Importe": 719345.0}, {"CIF": "B95050589", "Razon_social": "DMG MORI", "Importe": 641300.0}, {"CIF": "A28472819", "Razon_social": "FUJITSU TECHNOLOGY SOLUTIONS, S.A.", "Importe": 431803.02}, {"CIF": "B46001897", "Razon_social": "TK ELEVADORES ESPAÑA SL", "Importe": 421701.21}, {"CIF": "B87335253", "Razon_social": "OBRAS Y SERVICIOS REHABITEC, S.L.", "Importe": 416476.49}, {"CIF": "A28855260", "Razon_social": "INETUM ESPAÑA, S.A", "Importe": 399300.0}, {"CIF": "2000001759", "Razon_social": "TURNITIN LLC", "Importe": 271978.84}, {"CIF": "B88018098", "Razon_social": "INDRA SOLUCIONES TECN. INFORM. S.L.", "Importe": 235332.9}, {"CIF": "A80241789", "Razon_social": "SERVEO SERVICIOS S.A.", "Importe": 207427.65}, {"CIF": "A12681490", "Razon_social": "ADDA OPS S.A.", "Importe": 150352.42}, {"CIF": "B85547719", "Razon_social": "OCIOGIM, S.L.", "Importe": 131139.92}, {"CIF": "B72695430", "Razon_social": "Perkinelmer Scientific Spain, S.L.U", "Importe": 111956.46}, {"CIF": "B50162817", "Razon_social": "INTECH, S.L.", "Importe": 105990.19}, {"CIF": "A83647024", "Razon_social": "CYMI SEGURIDAD SA", "Importe": 104242.27}, {"CIF": "B66350281", "Razon_social": "IZASA SCIENTIFIC, S.L.U.", "Importe": 102159.48}, {"CIF": "B91827733", "Razon_social": "Auditoria y Consultoría de Privacid", "Importe": 99946.0}, {"CIF": "B82755505", "Razon_social": "ANADAT TECHNOLOGY SL", "Importe": 96366.6}, {"CIF": "B58521147", "Razon_social": "LEICA MICROSYSTEMS", "Importe": 82278.43}, {"CIF": "B82695842", "Razon_social": "SEPROTEC", "Importe": 78166.0}, {"CIF": "A78448305", "Razon_social": "FORMULARIOS QUIMICOS, S.A.", "Importe": 75800.09}, {"CIF": "B60742863", "Razon_social": "GREENDATA", "Importe": 74437.99}, {"CIF": "A28816379", "Razon_social": "ECONOM SERVICIOS, S.A.", "Importe": 74343.8}, {"CIF": "B87161725", "Razon_social": "DIMETRICAL, The Analytics Lab", "Importe": 72600.0}, {"CIF": "2000003319", "Razon_social": "SAS MICROLIGHT3D", "Importe": 70110.0}, {"CIF": "B90167594", "Razon_social": "OPENWEBINARS, S.L", "Importe": 69623.4}, {"CIF": "B82509936", "Razon_social": "PREVILABOR 365 SL", "Importe": 64200.0}, {"CIF": "B65244956", "Razon_social": "IDENTIFICATION CARE, S.L.", "Importe": 64102.170000000006}, {"CIF": "B81690471", "Razon_social": "DELOITTE CONSULTING S.L.", "Importe": 60500.0}, {"CIF": "W0047861J", "Razon_social": "FUJIFILM EUROPE GMBH SUCURSAL EN ES", "Importe": 55176.0}, {"CIF": "A28139434", "Razon_social": "LIFE TECHNOLOGIES S.A.", "Importe": 53350.55}, {"CIF": "B62759139", "Razon_social": "BOBCAT OF, S.L", "Importe": 53077.0}, {"CIF": "B25335910", "Razon_social": "PRAME INFORMATICA S.L.", "Importe": 49755.55}, {"CIF": "A58710740", "Razon_social": "PALEX MEDICAL S.A.", "Importe": 47916.0}, {"CIF": "B22184501", "Razon_social": "CONSORCIO MERCANTIL DE HUESCA,S.L.", "Importe": 47177.9}, {"CIF": "A28278026", "Razon_social": "STELLANTIS &YOU ESPAÑA SA", "Importe": 46061.29}, {"CIF": "B64244791", "Razon_social": "ORIGIO MEDICULT ESPAÑA S.L", "Importe": 44781.87}, {"CIF": "A81597320", "Razon_social": "DESTRUCCION CONFIDENCIAL DE DOCUMEN", "Importe": 38357.0}, {"CIF": "A79486833", "Razon_social": "ELECNOR SERVICIOS Y PROYEC., S.A.U.", "Importe": 31056.26}, {"CIF": "B03243110", "Razon_social": "CIBERNOS SISTEMAS SL", "Importe": 29959.71}, {"CIF": "B70568191", "Razon_social": "NOTACOOLCOMPANY, S.L.", "Importe": 29803.99}, {"CIF": "B87951232", "Razon_social": "S22 DIGITAL SL", "Importe": 24200.0}, {"CIF": "A28058337", "Razon_social": "CARL ZEISS IBERICA, S.A.", "Importe": 20545.8}, {"CIF": "B79184115", "Razon_social": "MERCK LIFE SCIENCE SLU", "Importe": 19208.75}, {"CIF": "A39038963", "Razon_social": "SAKURA PRODUCTOS HOSPITALARIOS", "Importe": 18876.0}, {"CIF": "A78021359", "Razon_social": "TECNOLOGIA Y SERVICIO,S.A.", "Importe": 17674.47}, {"CIF": "A78873973", "Razon_social": "EUROFINS MEGALAB S.A.U.", "Importe": 17495.39}, {"CIF": "A86779030", "Razon_social": "DATOS MEDIA TECHNOLOGIES, S.A.", "Importe": 16743.74}, {"CIF": "A80887201", "Razon_social": "FERRETERIA IBERMADRID S.A.", "Importe": 16667.71}, {"CIF": "A47237516", "Razon_social": "AUDIOTEC", "Importe": 16467.89}, {"CIF": "B98421969", "Razon_social": "ALCANCE GLOBAL, S.L.", "Importe": 16335.0}, {"CIF": "B60834645", "Razon_social": "MY NEWS SL", "Importe": 15216.96}, {"CIF": "B86060126", "Razon_social": "BATE SCIENTIA SALUS", "Importe": 15125.0}, {"CIF": "05902445R", "Razon_social": "ROMERO MORALES, Mª GRACIA -FARMACIA", "Importe": 12103.52}, {"CIF": "B84441831", "Razon_social": "FUNDAMENTA CONSULTING SL", "Importe": 11132.0}, {"CIF": "2000003318", "Razon_social": "SA JOBTEASER", "Importe": 9680.0}, {"CIF": "B83123901", "Razon_social": "MADRILEÑA DE CONTENEDORES, S.L.", "Importe": 8731.8}, {"CIF": "B30744338", "Razon_social": "NEDATEC CONSULTING SL", "Importe": 8349.0}, {"CIF": "B85334340", "Razon_social": "SURGE AMBIENTAL, S.L.", "Importe": 7920.0}, {"CIF": "A08238578", "Razon_social": "MATACHANA", "Importe": 7713.75}, {"CIF": "B27709476", "Razon_social": "Teltek Video Research SL", "Importe": 5487.35}, {"CIF": "B87490892", "Razon_social": "TECHKOVERY", "Importe": 4598.0}, {"CIF": "F84415231", "Razon_social": "LOS OCHO GIRASOLES S. COOP. MAD.", "Importe": 4443.12}, {"CIF": "B81554008", "Razon_social": "TECNOVAC", "Importe": 3509.0}, {"CIF": "A58579764", "Razon_social": "CSI COMPACT SOFTWARE INTERNAT.,S.A.", "Importe": 2988.7}, {"CIF": "A41810920", "Razon_social": "VIVA AQUASERVICE", "Importe": 2297.1800000000003}], "2024": [{"Adjudicatario": "TRENASA, S.A.", "Importe": 20664000.0}, {"Adjudicatario": "MITIE FACILITIES SERVICES S.A", "Importe": 15670710.0}, {"Adjudicatario": "EBSCO INFORMATION SERVICES, S.L.U.", "Importe": 13004833.479999999}, {"Adjudicatario": "BIO RAD LABORATORIES, S.A.", "Importe": 10412699.11}, {"Adjudicatario": "GENERA QUATRO, S.L.", "Importe": 10343132.0}, {"Adjudicatario": "VEOLIA SERVICIOS LECAM S.A.", "Importe": 10332000.0}, {"Adjudicatario": "EULEN, S.A.", "Importe": 10332000.0}, {"Adjudicatario": "CONSTRUCCIONES RACOSA", "Importe": 10332000.0}, {"Adjudicatario": "CABO ROCA,S.L.", "Importe": 10332000.0}, {"Adjudicatario": "UTE LIMPIEZA COMPLUTENSE", "Importe": 9008758.89}, {"Adjudicatario": "UTE LIMPIEZA COMPLUTENSE LOTE 3", "Importe": 7942571.55}, {"Adjudicatario": "ACUNTIA, S.A.", "Importe": 5808000.0}, {"Adjudicatario": "NAUTALIA VIAJES S.L.", "Importe": 4287998.82}, {"Adjudicatario": "UNIVERSITAS XXI, SOL. Y TECN., S.A.", "Importe": 3481868.93}, {"Adjudicatario": "MEGIN OY", "Importe": 1815000.0}, {"Adjudicatario": "ENTALTO GAMES, S.L.", "Importe": 1209516.0}, {"Adjudicatario": "ASSI DISEÑOS Y TECNOLOGIA ALIMENTAR", "Importe": 1053404.92}, {"Adjudicatario": "SEKAI CORPORATE TRAVEL S.L.U.", "Importe": 1052700.0}, {"Adjudicatario": "ACIERTA ASISTENCIA, S.A.", "Importe": 821955.67}, {"Adjudicatario": "LIMPIEZA Y MANTENIMIENTO LYMA, S.L.", "Importe": 683340.0}, {"Adjudicatario": "NORMADAT, S.A.", "Importe": 568534.86}, {"Adjudicatario": "M.T. BRANDAO ESPAÑA, S.L.", "Importe": 564563.01}, {"Adjudicatario": "ACCIONA FACILITY SERVICES, S.A.", "Importe": 528897.23}, {"Adjudicatario": "BIHARTECH SOLUCIONES TECNOLOGICAS", "Importe": 518364.0}, {"Adjudicatario": "SIGNE, S.A.", "Importe": 465473.09}, {"Adjudicatario": "UTE TRANSPORTES UCM", "Importe": 464640.0}, {"Adjudicatario": "MARCIAL PONS LIBRERO,S.L.", "Importe": 447228.0}, {"Adjudicatario": "SEMICROL", "Importe": 345645.8}, {"Adjudicatario": "IZASA SCIENTIFIC, S.L.U.", "Importe": 299649.62}, {"Adjudicatario": "JASCO ANALITICA SPAIN,S.L.", "Importe": 296985.23}, {"Adjudicatario": "SERVYTRONIX C.TORRES MORENO S.L", "Importe": 270072.0}, {"Adjudicatario": "CL SOLUTIONS B.V.", "Importe": 258940.0}, {"Adjudicatario": "INST. Y MANTENIMIENTO MAGAR, S.L.", "Importe": 200179.25}, {"Adjudicatario": "JOHNSON CONTROLS ESPAÑA S.L.", "Importe": 162631.2}, {"Adjudicatario": "UTE V-AB/2024/013500 SERVINFORM-BET", "Importe": 158749.88}, {"Adjudicatario": "ECONOM SERVICIOS, S.A.", "Importe": 135868.47999999998}, {"Adjudicatario": "SECUGEN, S.L.", "Importe": 123238.5}, {"Adjudicatario": "ATOS IT SOLUTIONS AND SERVICES S.L", "Importe": 120996.12}, {"Adjudicatario": "Next Digital Hub S.L.", "Importe": 106413.45}, {"Adjudicatario": "NOUS GESTION DE PROYECTOS IT, S.L.", "Importe": 93870.11}, {"Adjudicatario": "ANAME", "Importe": 92287.5}, {"Adjudicatario": "HOSPITAL UNIV. MONCLOA", "Importe": 91065.5}, {"Adjudicatario": "MONASTERIO 1563 S.L.", "Importe": 88102.3}, {"Adjudicatario": "TOPCON EUROPE MEDICAL, B.V.", "Importe": 87118.79}, {"Adjudicatario": "QS QUACQUARELLISYMONDS LIMITED", "Importe": 79376.0}, {"Adjudicatario": "GRUPO FADENTE", "Importe": 77440.0}, {"Adjudicatario": "CIBERTEC, S.A.", "Importe": 76822.9}, {"Adjudicatario": "LEICA MICROSYSTEMS", "Importe": 69965.37}, {"Adjudicatario": "FISHER SCIENTIFIC S.L.", "Importe": 69867.91}, {"Adjudicatario": "ANDRIALA S.L.", "Importe": 67749.65}, {"Adjudicatario": "PALEX MEDICAL S.A.", "Importe": 66412.06}, {"Adjudicatario": "BABEL SISTEMAS DE INFORMACION, S.L.", "Importe": 65721.15}, {"Adjudicatario": "IBERLABO SA", "Importe": 64123.95}, {"Adjudicatario": "SERV FUNERAR S. SEBASTIÁN Y S. BLAS", "Importe": 63222.5}, {"Adjudicatario": "ROBERT BOSCH ESPAÑA, S.L.U.", "Importe": 62412.0}, {"Adjudicatario": "PSITEL", "Importe": 60984.0}, {"Adjudicatario": "PEREZ MACIAS, IGNACIO", "Importe": 59519.9}, {"Adjudicatario": "SCHARLAB, S.L.", "Importe": 56950.03999999999}, {"Adjudicatario": "AGILENT TECHNOLOGIES SPAIN, S.L.", "Importe": 50460.4}, {"Adjudicatario": "COMSA SERVICE FACILITY MANAGEMENT", "Importe": 50359.99}, {"Adjudicatario": "BECTON DICKINSON,S.A.", "Importe": 49855.78}, {"Adjudicatario": "Evident Europe Gmbh sucursal España", "Importe": 49610.0}, {"Adjudicatario": "METROHM HISPANIA S.L.U.", "Importe": 44710.11}, {"Adjudicatario": "ILLUMINA PRODUCTOS DE ESPAÑA S.L.U.", "Importe": 39549.15}, {"Adjudicatario": "IAM OKUDA SL", "Importe": 34268.18}, {"Adjudicatario": "DECONSA 86", "Importe": 33799.9}, {"Adjudicatario": "IRUBUS,S.A.", "Importe": 33000.0}, {"Adjudicatario": "ONEDOCUMENT, S.L.", "Importe": 32670.0}, {"Adjudicatario": "JOMAR SEGURIDAD, S.L.", "Importe": 29886.94}, {"Adjudicatario": "EDITORIAL MIC. PRODUCCIONES MIC, SL", "Importe": 28459.2}, {"Adjudicatario": "ONCALL EUROPA S.L.", "Importe": 27830.0}, {"Adjudicatario": "NIRCO, S.L.", "Importe": 27191.21}, {"Adjudicatario": "PROSYSTEN, S.L.", "Importe": 26911.85}, {"Adjudicatario": "CUALTIS, S.L.U", "Importe": 26154.63}, {"Adjudicatario": "ANTON PAAR SPAIN SLU", "Importe": 24544.0}, {"Adjudicatario": "ARPIVAL, S.A.", "Importe": 24193.95}, {"Adjudicatario": "ingeniería analítica, s.l.", "Importe": 21780.0}, {"Adjudicatario": "CARL ZEISS IBERICA, S.A.", "Importe": 21766.69}, {"Adjudicatario": "CYMI SEGURIDAD SA", "Importe": 21250.36}, {"Adjudicatario": "DATOS MEDIA TECHNOLOGIES, S.A.", "Importe": 21090.91}, {"Adjudicatario": "SOC.ESPAÑOLA CARBUROS METALICOS", "Importe": 19873.04}, {"Adjudicatario": "PSYMTEC MATERIAL TECNICO, S.L.", "Importe": 19473.3}, {"Adjudicatario": "MATACHANA", "Importe": 18679.96}, {"Adjudicatario": "LABCLINICS, S.A.", "Importe": 17895.0}, {"Adjudicatario": "SYNTEGON TELSTAR TECHNOLOGIES, S.L.", "Importe": 16456.0}, {"Adjudicatario": "BIOGEN CIENTIFICA, S.L.", "Importe": 16335.0}, {"Adjudicatario": "VWR INTERNATIONAL EUROLAB S.L.", "Importe": 15769.21}, {"Adjudicatario": "KEYSIGHT TECHNOLOGIES SALES SPAIN", "Importe": 14281.76}, {"Adjudicatario": "LARRAZ GRUPO EMPRESARIAL, S.A.", "Importe": 11470.8}, {"Adjudicatario": "AIR LIQUIDE ESPAÑA, S.A.", "Importe": 11279.62}, {"Adjudicatario": "EAGLE LANGUAGE SERVICE, S.L.", "Importe": 10890.0}, {"Adjudicatario": "RIO PRODCCIONES Y SERV. INTEGRALES.", "Importe": 10285.0}, {"Adjudicatario": "INSTRUMENTACION Y COMPONENTES", "Importe": 9680.0}, {"Adjudicatario": "WR BERKLEY INSURANCE EUROPE AG", "Importe": 9250.0}, {"Adjudicatario": "DISTRIB. INDUST. CIENTIFICAS S.L.", "Importe": 8155.52}, {"Adjudicatario": "CULTEK, S.L.", "Importe": 7955.75}, {"Adjudicatario": "MERCK LIFE SCIENCE SLU", "Importe": 7685.63}, {"Adjudicatario": "AQUABLUE PREMIUM WATER S.L.U", "Importe": 7385.4}, {"Adjudicatario": "CONTROLTECNICA INSTRUMENTACION CIEN", "Importe": 6987.75}, {"Adjudicatario": "ALCANCE GLOBAL, S.L.", "Importe": 6350.08}, {"Adjudicatario": "MOBILIAR", "Importe": 5205.82}, {"Adjudicatario": "DARA INFORMATICA", "Importe": 4942.85}, {"Adjudicatario": "PALINDROMO STARTUL, S.L.U.", "Importe": 4235.0}, {"Adjudicatario": "BAYFER S.L.U", "Importe": 3388.68}, {"Adjudicatario": "BECOMPLIANCE, S.L.", "Importe": 3388.39}, {"Adjudicatario": "DINATEN EVALUACION, S.L.", "Importe": 2904.0}, {"Adjudicatario": "EUROCONTROL", "Importe": 2371.6}, {"Adjudicatario": "MADRILEÑA DE CONTENEDORES, S.L.", "Importe": 2034.98}, {"Adjudicatario": "LA ESCUDERA CORREDURIA DE SEGUROS S", "Importe": 582.71}], "2025": [{"Expediente": "S-AB/2025/000057", "Objeto": "Suministro sistema de reciclado de gas de helio para Magnetoencefalografía", "Tipo": "Suministros", "Importe": 847000.0, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "FI07562567", "Razon_social": "MEGIN OY"}, {"Expediente": "V-NS/2025/000419", "Objeto": "AT SPRINGER 2025", "Tipo": "Servicios ", "Importe": 294840.14, "Unidad": "BIBLIOTECA GENERAL", "CIF": "DE209719094", "Razon_social": "SPRINGER CUSTOMER SERVICE CEN. GMBH"}, {"Expediente": "S-NS/2025/000219", "Objeto": "Actualiz. plataforma de gestión de proyectos de movilidad internac. Move-On", "Tipo": "Suministros", "Importe": 61874.56, "Unidad": "OFICINA RELACIONES INTERNACIONALES", "CIF": "DE246431144", "Razon_social": "QS UNISOLUTION GMBH"}, {"Expediente": "V-NS/2025/000221", "Objeto": "ACS 25-26-27", "Tipo": "Servicios ", "Importe": 289312.49, "Unidad": "BIBLIOTECA GENERAL", "CIF": 530196572, "Razon_social": "AMERICAN CHEMICAL SOCIETY"}, {"Expediente": "S-AB/2024/014083", "Objeto": "Suministro de un Sistema (UHV CO2 LASER)", "Tipo": "Suministros", "Importe": 263538.0, "Unidad": "GESTIÓN ECONÓMICA CENTRALIZADA DE PROYECTOS DE INVESTIGACIÓN", "CIF": "DE814401849", "Razon_social": "SURFACE SYSTEMS TECHNOLOGY GMBH&CO"}, {"Expediente": "V-AB/2025/000307", "Objeto": "Soporte técnico para desarrollo de un microscopio de ultravioleta de vacio", "Tipo": "Servicios ", "Importe": 29282.0, "Unidad": "GESTIÓN ECONÓMICA CENTRALIZADA DE PROYECTOS DE INVESTIGACIÓN", "CIF": "05419593B", "Razon_social": "SANCHEZ BLANCO MANCERA, ERNESTO"}, {"Expediente": "V-NS/2025/000602", "Objeto": "FREEDOM COLLECTION 25,26,27,28", "Tipo": "Servicios ", "Importe": 3790514.78, "Unidad": "BIBLIOTECA GENERAL", "CIF": "5033019B1", "Razon_social": "SANCHEZ BLANCO MANCERA, ERNESTO"}, {"Expediente": "V-AB/2025/000178", "Objeto": "PÓLIZAS DE SEGUROS DE BIENES Y COLECTIVOS UCM - Lote 002", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "A08169294", "Razon_social": "ASISA, ASISTENCIA SANITARIA INTERPR"}, {"Expediente": "S-NS/2025/000118", "Objeto": "Suministro mediante alquiler de un Amplificador Óptico Paramétrico", "Tipo": "Suministros", "Importe": 192390.0, "Unidad": "GESTIÓN ECONÓMICA CENTRALIZADA DE PROYECTOS DE INVESTIGACIÓN", "CIF": "A08480519", "Razon_social": "LASING, S.A."}, {"Expediente": "S-NS/2025/000142", "Objeto": "Suministro de detector ICCD", "Tipo": "Suministros", "Importe": 68401.3, "Unidad": "GESTIÓN ECONÓMICA CENTRALIZADA DE PROYECTOS DE INVESTIGACIÓN", "CIF": "A08480519", "Razon_social": "LASING, S.A."}, {"Expediente": "S-SS/2025/000540", "Objeto": "Suministro mediante arrendamiento sin opción a compra de un láser de fibra", "Tipo": "Suministros", "Importe": 18984.9, "Unidad": "GESTIÓN ECONÓMICA CENTRALIZADA DE PROYECTOS DE INVESTIGACIÓN", "CIF": "A08480519", "Razon_social": "LASING, S.A."}, {"Expediente": "V-SS/2024/013947", "Objeto": "SERVICIO DE LIMPIEZA DE ALCANTARILLADO Y SANEAMIENTO DE LA UCM", "Tipo": "Servicios ", "Importe": 10230.0, "Unidad": "SERV. DE COORDINACIÓN DE OBRAS Y MANTENIMIENTO", "CIF": "A26019992", "Razon_social": "FCC AQUALIA, S.A."}, {"Expediente": "V-AB/2025/000178", "Objeto": "PÓLIZAS DE SEGUROS DE BIENES Y COLECTIVOS UCM - Lote 001", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "A28013050", "Razon_social": "CASER-CAJA DE SEGUROS REUNIDOS,S.A."}, {"Expediente": "S-NS/2025/000285", "Objeto": "S.DPTAL FISIOLOGIA. PROC. NEGOCIADO SIN PUBLICIDAD LICENCIA PHYSIOEX", "Tipo": "Suministros", "Importe": 708.95, "Unidad": "ASUNTOS ECONÓMICOS F. FARMACIA", "CIF": "A28057701", "Razon_social": "PEARSON EDUCACION, S.A."}, {"Expediente": "V-SS/2024/014070", "Objeto": "PÓLIZA DE SEGURO DE RESPONSABILIDAD CIVIL INSTALACIÓN RADIACTIVA CENTRAL", "Tipo": "Servicios ", "Importe": 2339.58, "Unidad": "SERV. DE ACCIÓN SOCIAL", "CIF": "A28141935", "Razon_social": "MAPFRE ESPAÑA, CIA SEGUROS Y REAS"}, {"Expediente": "V-AB/2025/000178", "Objeto": "PÓLIZAS DE SEGUROS DE BIENES Y COLECTIVOS UCM - Lote 003", "Tipo": "Servicios ", "Importe": 888.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "A28141935", "Razon_social": "MAPFRE ESPAÑA, CIA SEGUROS Y REAS"}, {"Expediente": "V-AB/2025/000178", "Objeto": "PÓLIZAS DE SEGUROS DE BIENES Y COLECTIVOS UCM - Lote 004", "Tipo": "Servicios ", "Importe": 1336222.48, "Unidad": "SERV. CONTRATACIÓN", "CIF": "A28141935", "Razon_social": "MAPFRE ESPAÑA, CIA SEGUROS Y REAS"}, {"Expediente": "V-AS/2025/000346", "Objeto": "CONTRATACIÓN PÓLIZA SEGURO DRON ALA FIJA IX-12-18632 ARQUEOMETRÍA", "Tipo": "Servicios ", "Importe": 702.98, "Unidad": "SECC. C.A.I.", "CIF": "A28141935", "Razon_social": "MAPFRE ESPAÑA, CIA SEGUROS Y REAS"}, {"Expediente": "S-AB/2025/000199", "Objeto": "Suministro e Instalación de un Espectrómetro de masas de tipo MALDI-TOF/TOF", "Tipo": "Suministros", "Importe": 688490.0, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "A28315539", "Razon_social": "BRUKER ESPAÑOLA, S.A."}, {"Expediente": "S-AB/2025/000211", "Objeto": "Suministro de consola de radiofrecuencia para espectrómetro de RMN 700 MHz", "Tipo": "Suministros", "Importe": 637670.0, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "A28315539", "Razon_social": "BRUKER ESPAÑOLA, S.A."}, {"Expediente": "S-AS/2025/000027", "Objeto": "Actualización de licencias de productos Symantec", "Tipo": "Suministros", "Importe": 72433.02, "Unidad": "ADMINISTRACIÓN SERV. INFORMÁTICOS", "CIF": "A28816379", "Razon_social": "ECONOM SERVICIOS, S.A."}, {"Expediente": "V-AB/2025/000314", "Objeto": "Mantenimiento de la aplicación Génesis de gestión económico - financiera", "Tipo": "Servicios ", "Importe": 307340.0, "Unidad": "ADMINISTRACIÓN SERV. INFORMÁTICOS", "CIF": "A28855260", "Razon_social": "INETUM ESPAÑA, S.A"}, {"Expediente": "V-SS/2025/000484", "Objeto": "Mantenimiento de compresores de aire y ATR - Lote 001", "Tipo": "Servicios ", "Importe": 3436.4, "Unidad": "ASUNTOS ECONÓMICOS F. CC. QUÍMICAS", "CIF": "A28896330", "Razon_social": "REMICA, S.A."}, {"Expediente": "V-SS/2025/000484", "Objeto": "Mantenimiento de compresores de aire y ATR - Lote 002", "Tipo": "Servicios ", "Importe": 601.37, "Unidad": "ASUNTOS ECONÓMICOS F. CC. QUÍMICAS", "CIF": "A28896330", "Razon_social": "REMICA, S.A."}, {"Expediente": "V-AB/2025/000121", "Objeto": "SERVICIO DE RETIRADA DE RESIDUOS PELIGROSOS - Lote 002", "Tipo": "Servicios ", "Importe": 90000.0, "Unidad": "UNIDAD DE PREVENCIÓN DE RIESGOS LABORALES", "CIF": "A59202861", "Razon_social": "PREZERO GESTION DE RESIDUOS SA"}, {"Expediente": "V-NS/2024/013785", "Objeto": "MANTENIMIENTO EQUIPOS ANÁLISIS TÉRMICO - TÉCNICAS GEOLÓGICAS", "Tipo": "Servicios ", "Importe": 9728.0, "Unidad": "SECC. C.A.I.", "CIF": "A60631835", "Razon_social": "WATERS CROMATOGRAFIA, S.A."}, {"Expediente": "S-AS/2025/000300", "Objeto": "Suministro de un equipo de análisis térmico simultáneo TGA-DSC", "Tipo": "Suministros", "Importe": 99207.9, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "A60631835", "Razon_social": "WATERS CROMATOGRAFIA, S.A."}, {"Expediente": "V-AS/2024/014044", "Objeto": "Servicio de plantación y mantenimiento de zonas verdes Campus Somosaguas", "Tipo": "Servicios ", "Importe": 31998.24, "Unidad": "SERVICIO DE ADMINISTRACIÓN DE LOS SERVICIOS CENTRALES", "CIF": "A65208084", "Razon_social": "AMBITEC SERVICIOS AMBIENTALES SA"}, {"Expediente": "V-AB/2024/013722", "Objeto": "DISTRIBUCIÓN EDITORIAL", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "UNIDAD TÉCNICA DE CULTURA", "CIF": "A78115565", "Razon_social": "distriforma,s.a."}, {"Expediente": "V-NS/2024/013926", "Objeto": "MANTENIMIENTO SISTEMA ALIMENTACION ININTERRUMPIDA - GEOCRONOLOGIA", "Tipo": "Servicios ", "Importe": 1694.0, "Unidad": "SECC. C.A.I.", "CIF": "A78244134", "Razon_social": "VERTIV SPAIN S.A."}, {"Expediente": "V-AB/2025/000108", "Objeto": "AM MAQUETACIÓN LIBROS Y REVISTAS EDICIONES COMPLUTENSE", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "A79515672", "Razon_social": "SOLANA E HIJOS ARTES GRAFICAS, S.A."}, {"Expediente": "V-SS/2025/000402", "Objeto": "SERVICIO DE MANTENIMIENTO DE LOS SISTEMAS DE EDICIÓN AVID DE LA FAC.CC.INF", "Tipo": "Servicios ", "Importe": 16941.43, "Unidad": "ASUNTOS ECONÓMICOS F. CC. DE LA INFORMACIÓN", "CIF": "A86779030", "Razon_social": "DATOS MEDIA TECHNOLOGIES, S.A."}, {"Expediente": "V-AB/2025/000061", "Objeto": "Servicio de impresión y personalización de títulos universitarios de la UCM", "Tipo": "Servicios ", "Importe": 371701.72, "Unidad": "SERV. DE ADMINISTRACIÓN EDIFICIO ALUMNOS", "CIF": "A87176590", "Razon_social": "DIDOSEG DOCUMENTOS, S.A."}, {"Expediente": "V-AS/2025/000097", "Objeto": "SERVICIO DE SOLUCIONES PLATAFORMA SERVICIOS BIBLIOTECARIOS 2025", "Tipo": "Servicios ", "Importe": 12705.0, "Unidad": "BIBLIOTECA GENERAL", "CIF": "B02753127", "Razon_social": "SMART AREAS TECH, S.L."}, {"Expediente": "S-NS/2025/000507", "Objeto": "Licencias de uso de herramientas de generación de video multimedia", "Tipo": "Suministros", "Importe": 9075.0, "Unidad": "ADMINISTRACIÓN SERV. INFORMÁTICOS", "CIF": "B06881825", "Razon_social": "VIDEXT TECHNOLOGIES S.L."}, {"Expediente": "V-AS/2024/014047", "Objeto": "REVISIONES FÚNGICAS EN LOS QUIRÓFANOS DE LA CLÍNICA UNIVERSITARIA DE PODO", "Tipo": "Servicios ", "Importe": 10997.84, "Unidad": "ASUNTOS ECONÓMICOS F. ENFERMERÍA, FISIOTERAPIA Y PODOLOGÍA", "CIF": "B10598407", "Razon_social": "ABANICO SOLUCIONES AUXILIARES, S.L."}, {"Expediente": "S-AB/2025/000059", "Objeto": "Suministro de 24 cristales centelleadores ultrarápidos de alta resolución", "Tipo": "Suministros", "Importe": 114450.27, "Unidad": "GESTIÓN ECONÓMICA CENTRALIZADA DE PROYECTOS DE INVESTIGACIÓN", "CIF": "B10934016", "Razon_social": "APUS GLOBAL, S.L."}, {"Expediente": "V-AB/2024/013904", "Objeto": "AM SERVICIO DE TRABAJOS DE IMPRESIÓN DIGITAL Y ENCUADERNACIÓN", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "B23707631", "Razon_social": "MASQUELIBROS, SL"}, {"Expediente": "S-AB/2024/013610", "Objeto": "AM suministro de Ordenadores Apple MINI", "Tipo": "Suministros", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "B28639896", "Razon_social": "CLEVISA,S.L."}, {"Expediente": "V-NS/2024/014041", "Objeto": "MANTENIMIENTO ESPECTROMETRO DE MASAS Y CROMATOGRAFO LIQUIDO - PROTEOMICA", "Tipo": "Servicios ", "Importe": 46696.32, "Unidad": "SECC. C.A.I.", "CIF": "B28954170", "Razon_social": "THERMO FISHER SCIENTIFIC, S.L."}, {"Expediente": "V-AB/2024/014078", "Objeto": "Gestión, Ingeniería de Sistemas, Óptica y Mecánica desarrollo MOSAIC", "Tipo": "Servicios ", "Importe": 546315.0, "Unidad": "ASUNTOS ECONÓMICOS F. CC. FÍSICAS", "CIF": "B38829107", "Razon_social": "GARCIA VARGAS,Mª LUISA 000852081X"}, {"Expediente": "V-NS/2025/000499", "Objeto": "Mantenimiento licencias MEDTRA 2026-2030", "Tipo": "Servicios ", "Importe": 10345.5, "Unidad": "UNIDAD DE PREVENCIÓN DE RIESGOS LABORALES", "CIF": "B39305156", "Razon_social": "A.T. MEDTRA, S.L."}, {"Expediente": "V-SS/2024/013972", "Objeto": "Servicio de radiodiagnostico", "Tipo": "Servicios ", "Importe": 8000.0, "Unidad": "UNIDAD DE PREVENCIÓN DE RIESGOS LABORALES", "CIF": "B47613815", "Razon_social": "CENTRO DIAGNOSTICO HOSPITALARIO VOT"}, {"Expediente": "V-SS/2025/000374", "Objeto": "Mantenimiento repositorio abierto “Docta Complutense” basado sofware DSpace", "Tipo": "Servicios ", "Importe": 6352.5, "Unidad": "BIBLIOTECA GENERAL", "CIF": "B57543191", "Razon_social": "DATABOT TECHNOLOGIES, S.L"}, {"Expediente": "V-AB/2024/013988", "Objeto": "AM CORRECCIÓN ORTOTIPOGRÁFICA DEL SELLO EDITORIAL DE LA UCM", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "B59094870", "Razon_social": "REBOLD COMMUNICATION, S.L."}, {"Expediente": "S-NS/2025/000297", "Objeto": "Renovación de la Suscripción a la aplicación Edisoft", "Tipo": "Suministros", "Importe": 5332.53, "Unidad": "ADMINISTRACIÓN SERV. INFORMÁTICOS", "CIF": "B61287512", "Razon_social": "APLICACIONES TECNICAS SOFTLINE SL"}, {"Expediente": "S-NS/2025/000619", "Objeto": "Licencia de campus MATLAB", "Tipo": "Suministros", "Importe": 83748.94, "Unidad": "ADMINISTRACIÓN SERV. INFORMÁTICOS", "CIF": "B62205745", "Razon_social": "THE MATHWORKS,S.L."}, {"Expediente": "V-NS/2025/000550", "Objeto": "MANTENIMIENTO Y REPARACIÓN EQUIPOS AUTOSERVICIO Y ANTIHURTO BIBLIOTECA", "Tipo": "Servicios ", "Importe": 57878.55, "Unidad": "SERV. CONTRATACIÓN", "CIF": "B65244956", "Razon_social": "IDENTIFICATION CARE, S.L."}, {"Expediente": "V-NS/2024/013835", "Objeto": "MANTENIMIENTO DE LOS MICROSCOPIOS JEOL - ICTS MICROSCOPIA ELECTRONICA", "Tipo": "Servicios ", "Importe": 422598.55, "Unidad": "SECC. C.A.I.", "CIF": "B66350281", "Razon_social": "IZASA SCIENTIFIC, S.L.U."}, {"Expediente": "S-AB/2025/000127", "Objeto": "Suministro de cámara de detección directa de electrones para microscopio", "Tipo": "Suministros", "Importe": 376813.36, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "B66350281", "Razon_social": "IZASA SCIENTIFIC, S.L.U."}, {"Expediente": "V-AB/2025/000126", "Objeto": "MANIPULACIÓN, EMBALAJE Y TRANSPORTE ESPECIALIZADO DE BIENES ARTÍSTICOS", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "B71092340", "Razon_social": "CLOISTER SERVICES 2000, S.L."}, {"Expediente": "V-NS/2025/000068", "Objeto": "Mantenimiento del equipo Milli-Q IQ 7003 s/n F1SB85280G", "Tipo": "Servicios ", "Importe": 9976.28, "Unidad": "GESTIÓN ECONÓMICA CENTRALIZADA DE PROYECTOS DE INVESTIGACIÓN", "CIF": "B79184115", "Razon_social": "MERCK LIFE SCIENCE SLU"}, {"Expediente": "V-NS/2024/014097", "Objeto": "Soporte telefónico FARMATIC Windows", "Tipo": "Servicios ", "Importe": 767.84, "Unidad": "HOSPITAL CLÍNICO VETERINARIO COMPLUTENSE", "CIF": "B80980501", "Razon_social": "FARMA SOFT, INFORMÁTICA Y SERVICIOS"}, {"Expediente": "V-AB/2024/014035", "Objeto": "Servicio de administración y mantenimiento de Bases de Datos", "Tipo": "Servicios ", "Importe": 77609.44, "Unidad": "ADMINISTRACIÓN SERV. INFORMÁTICOS", "CIF": "B81230252", "Razon_social": "MR INFORMATICA"}, {"Expediente": "S-NS/2025/000154", "Objeto": "NUTRICION. PROCEDIMIENTO NEGOCIADO SIN PUBLICIDAD LICENCIA BODYGRAM", "Tipo": "Suministros", "Importe": 119.79, "Unidad": "ASUNTOS ECONÓMICOS F. FARMACIA", "CIF": "B82473703", "Razon_social": "Bio Net Medical"}, {"Expediente": "V-AS/2025/000037", "Objeto": "Sevicios de Controlador de primer nivel (auditoría) Programa Interreg Sudoe", "Tipo": "Servicios ", "Importe": 1706.1, "Unidad": "SECC. GESTIÓN ECONÓMICA INVESTIGACIÓN", "CIF": "B83307280", "Razon_social": "MGI AUDICON & PARTNERS, S.L.P."}, {"Expediente": "V-SS/2025/000473", "Objeto": "Mantenimiento preventivo cabinas flujo laminar y seguridad biológica", "Tipo": "Servicios ", "Importe": 2519.22, "Unidad": "ASUNTOS ECONÓMICOS F. CC. QUÍMICAS", "CIF": "B84403856", "Razon_social": "LABORTECH WALDNER,S.L."}, {"Expediente": "V-AB/2024/014186", "Objeto": "AM MONTAJE, DESMONTAJE Y GRÁFICOS DE EXPOSICIONES SALA C ARTE C", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. CONTRATACIÓN", "CIF": "B85045045", "Razon_social": "ARTEC EXPOSICIONES SL"}, {"Expediente": "V-NS/2025/000242", "Objeto": "Mantenimiento del Sistema de Aire Medicinal y Vacío Médico del HCVC", "Tipo": "Servicios ", "Importe": 7869.84, "Unidad": "HOSPITAL CLÍNICO VETERINARIO COMPLUTENSE", "CIF": "B85187367", "Razon_social": "MERI-MEDICAL, S.L."}, {"Expediente": "V-NS/2025/000243", "Objeto": "Mantenimiento del Generador de Oxígeno Medicinal del HCVC", "Tipo": "Servicios ", "Importe": 47857.92, "Unidad": "HOSPITAL CLÍNICO VETERINARIO COMPLUTENSE", "CIF": "B85187367", "Razon_social": "MERI-MEDICAL, S.L."}, {"Expediente": "V-SS/2025/000313", "Objeto": "SERVICIO DE ORGANIZACIÓN Y DESARROLLO DE LA ACTIVIDAD DÍAS SIN COLE 2025-26", "Tipo": "Servicios ", "Importe": 0.0, "Unidad": "SERV. DE ACCIÓN SOCIAL", "CIF": "B85547719", "Razon_social": "OCIOGIM, S.L."}, {"Expediente": "S-NS/2025/000233", "Objeto": "LIBSAFE 2025", "Tipo": "Suministros", "Importe": 45375.0, "Unidad": "BIBLIOTECA GENERAL", "CIF": "B85846319", "Razon_social": "LIBNOVA S.L."}, {"Expediente": "V-AB/2025/000121", "Objeto": "SERVICIO DE RETIRADA DE RESIDUOS PELIGROSOS - Lote 001", "Tipo": "Servicios ", "Importe": 210001.02, "Unidad": "UNIDAD DE PREVENCIÓN DE RIESGOS LABORALES", "CIF": "B86246691", "Razon_social": "Gest. y Valorización del Centro,S.L"}, {"Expediente": "V-NS/2025/000184", "Objeto": "Mantenimiento Sistema Control de Accesos y Videovigilancia HCVC", "Tipo": "Servicios ", "Importe": 13068.0, "Unidad": "HOSPITAL CLÍNICO VETERINARIO COMPLUTENSE", "CIF": "B86479078", "Razon_social": "ALMAS INDUSTRIES BSAFE S.L."}, {"Expediente": "S-NS/2025/000067", "Objeto": "Alquiler 1 equipo de anestesia y 2 monitores multiparamétricos 2025", "Tipo": "Suministros", "Importe": 44528.0, "Unidad": "HOSPITAL CLÍNICO VETERINARIO COMPLUTENSE", "CIF": "B87978631", "Razon_social": "EMER VETERINARIA S.L."}, {"Expediente": "V-NS/2025/000310", "Objeto": "Manteniento licencias OTH gestión reservas Colegios Mayores", "Tipo": "Servicios ", "Importe": 70264.13, "Unidad": "COLEGIOS MAYORES", "CIF": "B88018098", "Razon_social": "INDRA SOLUCIONES TECN. INFORM. S.L."}, {"Expediente": "S-NS/2025/000431", "Objeto": "ACTUALIZACIÓN DE LICENCIAS SISTEMA INFORMACIÓN ASISTENCIAL CLÍNICA PODOLÓGI", "Tipo": "Suministros", "Importe": 27116.34, "Unidad": "ASUNTOS ECONÓMICOS F. ENFERMERÍA, FISIOTERAPIA Y PODOLOGÍA", "CIF": "B88018098", "Razon_social": "INDRA SOLUCIONES TECN. INFORM. S.L."}, {"Expediente": "V-AS/2025/000037", "Objeto": "Sevicios de Controlador de primer nivel (auditoría) Programa Interreg Sudoe", "Tipo": "Servicios ", "Importe": 2178.0, "Unidad": "SECC. GESTIÓN ECONÓMICA INVESTIGACIÓN", "CIF": "B91812099", "Razon_social": "GESTION 5 AUDITORES SLP"}, {"Expediente": "S-SS/2025/000174", "Objeto": "PROC. SIMPLIFICADO ABREVIADO MEDALLAS Y PLACAS CONMEMORATIVAS.  F. FARMACIA", "Tipo": "Suministros", "Importe": 6613.86, "Unidad": "ASUNTOS ECONÓMICOS F. FARMACIA", "CIF": "B97199806", "Razon_social": "EUROCEBRIAN, S.L."}, {"Expediente": "S-AB/2025/000018", "Objeto": "Suministro habitación aislada de campos magnéticos Magnetoencefalografía", "Tipo": "Suministros", "Importe": 623150.0, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "DE811148525", "Razon_social": "VACUUMSCHMELZE GMBH & Co.KG"}, {"Expediente": "S-NS/2025/000334", "Objeto": "Suministro de licencias para uso y explotación de obras CEDRO", "Tipo": "Suministros", "Importe": 5715.4, "Unidad": "SERVICIO DE ADMINISTRACIÓN DE LOS SERVICIOS CENTRALES", "CIF": "G78652203", "Razon_social": "CENTRO ESPAÑOL DE DERECHOS REPROGR."}, {"Expediente": "V-NS/2025/000203", "Objeto": "WILEY 2025", "Tipo": "Servicios ", "Importe": 321124.66, "Unidad": "BIBLIOTECA GENERAL", "CIF": "GB376766987", "Razon_social": "WILEY EUROPE LTD-JOHN WILEY&SONS L."}, {"Expediente": "V-SS/2025/000045", "Objeto": "Servicio de mantenimiento equipos anestesia 2025-2028 HCV", "Tipo": "Servicios ", "Importe": 15972.0, "Unidad": "HOSPITAL CLÍNICO VETERINARIO COMPLUTENSE", "CIF": "N0056295I", "Razon_social": "POLYGON S.P.A."}, {"Expediente": "V-AB/2024/013957", "Objeto": "SERV. MANT. Y CONS. INFRAESTRUCTURA VERDE, BIENES NATURALES Y LIMPIEZA EXTE", "Tipo": "Servicios ", "Importe": 3440476.16, "Unidad": "SERV. DE COORDINACIÓN DE OBRAS Y MANTENIMIENTO", "CIF": "U75818740", "Razon_social": "URBASER SAU-IMESAPI SA UTE Z VERDES"}, {"Expediente": "V-AS/2024/013784", "Objeto": "BASE DE DATOS EN LINEA 2025 - Lote 002", "Tipo": "Servicios ", "Importe": 7448.48, "Unidad": "BIBLIOTECA GENERAL", "CIF": "US392053855", "Razon_social": "PROQUEST LLC"}, {"Expediente": "S-NS/2025/000041", "Objeto": "Suministro Licencia EGEDA 2025", "Tipo": "Suministros", "Importe": 13843.37, "Unidad": "ASUNTOS ECONÓMICOS F. CC. DE LA INFORMACIÓN", "CIF": "V79596821", "Razon_social": "EGEDA"}, {"Expediente": "S-AB/2025/000185", "Objeto": "Suministro de un Sistema de Haz Dual para preparación de Lamellas (FIB)", "Tipo": "Suministros", "Importe": 854078.5, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "W0032378B", "Razon_social": "FEI EUROPE, B.V"}, {"Expediente": "V-NS/2024/013932", "Objeto": "MANTENIMIENTO DIFRASuministrosTOMETROS, ESPESuministrosTROMETRO, PERLADORA - DIFRASuministrosSuministrosION RAYOS X", "Tipo": "Servicios ", "Importe": 229348.3, "Unidad": "SECC. C.A.I.", "CIF": "W0032764C", "Razon_social": "MALVERN PANALYTICAL B.V. SUC. ESPAÑ"}, {"Expediente": "S-AB/2025/000179", "Objeto": "Suministro de un espectrometro de Fluorescencia de Rayox X", "Tipo": "Suministros", "Importe": 298628.0, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "W0032764C", "Razon_social": "MALVERN PANALYTICAL B.V. SUC. ESPAÑ"}, {"Expediente": "S-AB/2025/000249", "Objeto": "Suministro de un Difractometros de Rayos X de alta resolucion", "Tipo": "Suministros", "Importe": 255915.0, "Unidad": "SECC. INFRAESTRUCTURA CIENTÍFICA", "CIF": "W0032764C", "Razon_social": "MALVERN PANALYTICAL B.V. SUC. ESPAÑ"}, {"Expediente": "V-AS/2024/013865", "Objeto": "SEGURO VOLUNTARIO DE ASISTENCIA EN VIAJES", "Tipo": "Servicios ", "Importe": 50071.2, "Unidad": "SERV. DE ACCIÓN SOCIAL", "CIF": "W0040918E", "Razon_social": "ERGO SEGUROS DE VIAJE SUCURSAL EN E"}, {"Expediente": "V-NS/2024/013901", "Objeto": "MANTENIMIENTO SISTEMA LITOGRAFIA HAZ DE ELECTRONES - PULVERIZACION CATODICA", "Tipo": "Servicios ", "Importe": 20570.0, "Unidad": "SECC. C.A.I.", "CIF": "Z0000700X", "Razon_social": "RAITH GMBH"}]};
+
+// ── State ──────────────────────────────────────────────────────
+let activeYear = '2025';
+let searchQ = '';
+let sortCol = -1, sortDir = 1;
+let page = 1;
+const PAGE_SIZE_KEY = 'adjPageSize';
+let pageSize = parseInt(localStorage.getItem(PAGE_SIZE_KEY) || '25');
+
+// ── Helpers ────────────────────────────────────────────────────
+function fmt(v) {
+  if (v === '' || v == null) return '—';
+  const n = parseFloat(v);
+  if (isNaN(n)) return v;
+  return n.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+}
+function fmtShort(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return '—';
+  if (n >= 1e6) return (n/1e6).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' M€';
+  if (n >= 1e3) return (n/1e3).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1}) + ' K€';
+  return n.toLocaleString('es-ES',{minimumFractionDigits:2}) + ' €';
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+function badgeTipo(t){
+  const tl = (t||'').toLowerCase().trim();
+  if(tl.includes('servic')) return `<span class="badge badge-servicios">${esc(t)}</span>`;
+  if(tl.includes('sumin')) return `<span class="badge badge-suministros">${esc(t)}</span>`;
+  if(tl.includes('obra')) return `<span class="badge badge-obras">${esc(t)}</span>`;
+  return esc(t);
+}
+
+// ── Columns per year ───────────────────────────────────────────
+function getCols(yr) {
+  if (yr === '2025') return [
+    {k:'Expediente', label:'Expediente', cl:'col-exp'},
+    {k:'Objeto',     label:'Objeto del contrato', cl:'col-obj'},
+    {k:'Tipo',       label:'Tipo', cl:'col-tipo', render: r => badgeTipo(r.Tipo)},
+    {k:'Unidad',     label:'Unidad tramitadora', cl:'col-unidad'},
+    {k:'CIF',        label:'CIF', cl:'col-cif'},
+    {k:'Razon_social', label:'Adjudicatario', cl:'col-adj'},
+    {k:'Importe',    label:'Importe adj.', cl:'col-importe', render: r => fmt(r.Importe)},
+  ];
+  if (yr === '2023') return [
+    {k:'CIF',         label:'CIF', cl:'col-cif'},
+    {k:'Razon_social',label:'Adjudicatario', cl:'col-adj'},
+    {k:'Importe',     label:'Importe adj.', cl:'col-importe', render: r => fmt(r.Importe)},
+  ];
+  // 2021, 2022, 2024
+  return [
+    {k:'Adjudicatario', label:'Adjudicatario', cl:'col-adj'},
+    {k:'Importe',       label:'Importe adj.', cl:'col-importe', render: r => fmt(r.Importe)},
+  ];
+}
+
+// ── Filter & sort ──────────────────────────────────────────────
+function getFiltered() {
+  let recs = DATA[activeYear] || [];
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    recs = recs.filter(r => Object.values(r).some(v => String(v||'').toLowerCase().includes(q)));
+  }
+  if (sortCol >= 0) {
+    const cols = getCols(activeYear);
+    const k = cols[sortCol]?.k;
+    if (k) {
+      recs = [...recs].sort((a,b) => {
+        const av = a[k], bv = b[k];
+        const an = parseFloat(av), bn = parseFloat(bv);
+        if (!isNaN(an) && !isNaN(bn)) return (an - bn) * sortDir;
+        return String(av||'').localeCompare(String(bv||''), 'es') * sortDir;
+      });
+    }
+  }
+  return recs;
+}
+
+// ── Pagination ─────────────────────────────────────────────────
+function totalPages(total){ return Math.max(1, Math.ceil(total / pageSize)); }
+function renderPagination(total, tableId) {
+  const tp = totalPages(total);
+  if (tp <= 1 && total <= pageSize) return '';
+  const start = (page-1)*pageSize+1, end = Math.min(page*pageSize, total);
+  let btns = '';
+  if (page > 1) {
+    btns += `<button class="page-btn" onclick="goPage(1,'${tableId}')">«</button>`;
+    btns += `<button class="page-btn" onclick="goPage(${page-1},'${tableId}')">‹</button>`;
+  }
+  let lo = Math.max(1, page-2), hi = Math.min(tp, page+2);
+  if (lo > 1) btns += `<span style="padding:0 4px;color:var(--gris-m);font-size:12px">…</span>`;
+  for (let i=lo; i<=hi; i++) btns += `<button class="page-btn${i===page?' active':''}" onclick="goPage(${i},'${tableId}')">${i}</button>`;
+  if (hi < tp) btns += `<span style="padding:0 4px;color:var(--gris-m);font-size:12px">…</span>`;
+  if (page < tp) {
+    btns += `<button class="page-btn" onclick="goPage(${page+1},'${tableId}')">›</button>`;
+    btns += `<button class="page-btn" onclick="goPage(${tp},'${tableId}')">»</button>`;
+  }
+  return `<div class="pagination-wrap">
+    <span class="pagination-info">Mostrando <b>${start}–${end}</b> de <b>${total}</b> registros</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <select class="page-size-select" onchange="changePageSize(this.value,'${tableId}')">
+        ${[10,25,50,100].map(n=>`<option value="${n}"${n===pageSize?' selected':''}>${n} / pág.</option>`).join('')}
+      </select>
+      <div class="pagination">${btns}</div>
+    </div>
+  </div>`;
+}
+
+function goPage(p, tid) { page = p; renderMain(); }
+function changePageSize(n, tid) { pageSize = parseInt(n); localStorage.setItem(PAGE_SIZE_KEY, n); page = 1; renderMain(); }
+
+// ── Render table ───────────────────────────────────────────────
+function renderTable(recs, yr) {
+  const cols = getCols(yr);
+  const total = recs.length;
+  const slice = recs.slice((page-1)*pageSize, page*pageSize);
+
+  let thead = '<thead><tr><th class="col-num">#</th>';
+  cols.forEach((c, i) => {
+    let cls = '';
+    if (sortCol === i) cls = sortDir === 1 ? 'sorted-asc' : 'sorted-desc';
+    thead += `<th class="${cls}" onclick="doSort(${i})">${c.label} <span class="sort-icon"></span></th>`;
+  });
+  thead += '</tr></thead>';
+
+  let tbody = '<tbody>';
+  if (slice.length === 0) {
+    tbody += `<tr class="empty-row"><td colspan="${cols.length+1}">Sin resultados para la búsqueda actual</td></tr>`;
+  } else {
+    slice.forEach((r, i) => {
+      tbody += `<tr><td class="col-num">${(page-1)*pageSize+i+1}</td>`;
+      cols.forEach(c => {
+        const val = c.render ? c.render(r) : esc(r[c.k]);
+        tbody += `<td class="${c.cl||''}">${val}</td>`;
+      });
+      tbody += '</tr>';
+    });
+  }
+  tbody += '</tbody>';
+
+  const total_importe = recs.reduce((s,r) => s + (parseFloat(r.Importe)||0), 0);
+  return {
+    html: `<div class="tw"><table>${thead}${tbody}</table></div>` + renderPagination(total, 'main'),
+    count: total,
+    total_importe
+  };
+}
+
+// ── Stats bar ─────────────────────────────────────────────────
+function renderStats(count, total_importe) {
+  return `<div class="stats-bar">
+    <div class="stat-card">
+      <span class="stat-label">Adjudicatarios</span>
+      <span class="stat-value">${count.toLocaleString('es-ES')}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Importe total adjudicado</span>
+      <span class="stat-value red">${total_importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} €</span>
+    </div>
+  </div>`;
+}
+
+// ── Year tabs ─────────────────────────────────────────────────
+function renderTabs() {
+  const years = Object.keys(DATA).sort((a,b)=>b-a);
+  document.getElementById('yearTabs').innerHTML = years.map(y =>
+    `<button class="ytab${y===activeYear?' act':''}" onclick="setYear('${y}')">${y}</button>`
+  ).join('');
+}
+
+function setYear(y) {
+  activeYear = y; page = 1; sortCol = -1; sortDir = 1;
+  document.getElementById('searchInput').value = ''; searchQ = '';
+  renderTabs(); renderMain();
+}
+
+// ── Main render ───────────────────────────────────────────────
+function renderMain() {
+  const recs = getFiltered();
+  const {html, count, total_importe} = renderTable(recs, activeYear);
+  const statsHTML = renderStats(count, total_importe);
+
+  // Stats bar updates separately
+  const existing = document.getElementById('statsBar');
+  if (existing) existing.innerHTML = renderStats(count, total_importe).replace('<div class="stats-bar">','').replace('</div>','').trim();
+
+  // Rebuild full content
+  const content = `
+    <div id="statsBar" class="stats-bar">
+      <div class="stat-card">
+        <span class="stat-label">Adjudicatarios</span>
+        <span class="stat-value">${count.toLocaleString('es-ES')}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Importe total adjudicado</span>
+        <span class="stat-value red">${total_importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} €</span>
+      </div>
+    </div>
+    <div style="padding:16px 0 0">
+      <div class="sec-hdr">
+        <h2>Ejercicio ${activeYear}</h2>
+        <span class="sec-meta">${DATA[activeYear].length} registros · Ordenados por importe descendente</span>
+      </div>
+      ${html}
+    </div>`;
+
+  document.getElementById('mainContent').innerHTML = content;
+}
+
+// ── Sort ──────────────────────────────────────────────────────
+function doSort(colIdx) {
+  if (sortCol === colIdx) sortDir *= -1;
+  else { sortCol = colIdx; sortDir = -1; }
+  page = 1;
+  renderMain();
+}
+
+// ── Search ────────────────────────────────────────────────────
+function onSearch() {
+  searchQ = document.getElementById('searchInput').value.trim();
+  page = 1;
+  renderMain();
+}
+
+// ── Export helpers ────────────────────────────────────────────
+function getExportRows() {
+  const recs = DATA[activeYear] || [];
+  const cols = getCols(activeYear);
+  const headers = cols.map(c => c.label);
+  const rows = recs.map(r => cols.map(c => {
+    const v = r[c.k];
+    if (c.k === 'Importe') return parseFloat(v)||0;
+    return v || '';
+  }));
+  return { headers, rows };
+}
+
+function downloadExcel() {
+  const {headers, rows} = getExportRows();
+  const ws_data = [headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  // Format importe col
+  const impIdx = headers.findIndex(h => h.toLowerCase().includes('importe'));
+  if (impIdx >= 0) {
+    for (let i=1; i<=rows.length; i++) {
+      const cell = ws[XLSX.utils.encode_cell({r:i,c:impIdx})];
+      if (cell) cell.z = '#,##0.00 "€"';
+    }
+  }
+  // Col widths
+  ws['!cols'] = headers.map((h,i) => {
+    let max = h.length;
+    rows.forEach(r => { const v = String(r[i]||''); if(v.length>max) max=v.length; });
+    return {wch: Math.min(max+2, 60)};
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Adjudicatarios ${activeYear}`);
+  XLSX.writeFile(wb, `adjudicatarios_ucm_${activeYear}.xlsx`);
+}
+
+function downloadCSV() {
+  const {headers, rows} = getExportRows();
+  const lines = [headers, ...rows].map(row =>
+    row.map(v => {
+      const s = String(v||'');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(',')
+  );
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `adjudicatarios_ucm_${activeYear}.csv`; a.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderTabs();
+renderMain();
+</script>
+
+<div class="footer">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gris-m)"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+  <p class="footer-text">
+    Información facilitada por la
+    <a href="https://www.ucm.es/directorio/?eid=1003" target="_blank" rel="noopener">Dirección de la Contratación Administrativa y  <a href="https://www.ucm.es/directorio/?eid=951" target="_blank" rel="noopener">Servicio de Coordinación y Apoyo del Área Económica</a>
+    · Universidad Complutense de Madrid
+  </p>
+</div>
+</body>
+</html>
